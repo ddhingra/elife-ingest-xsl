@@ -1,15 +1,29 @@
 language: php
 
 php:
+  - 5.5
   - 5.6
+  - 7.0
 
-before_script:
-  - sudo apt-get update
-  - sudo apt-get install xsltproc
+matrix:
+  allow_failures:
+    - 7.0
 
-  - ./generation_citation_formats.sh
+## Run on container environment
+sudo: false
 
-  # Output citation formats grouped by format
-  - for ext in $(find tests/tmp -type f -name "*.*" | awk -F. '!a[$NF]++{print $NF}'); do find tests/tmp -name "*.$ext" -exec cat {} \;; done
+## Cache composer bits
+cache:
+  directories:
+    - bin
+    - vendor
+    - $HOME/.composer/cache
 
-script: phpunit --verbose -c tests/phpunit.xml
+install:
+  - travis_retry composer self-update && composer --version
+  - travis_retry composer install --prefer-dist --no-interaction
+
+script:
+# Disable phpspec run for now
+#  - ./bin/phpspec run --format=pretty
+  - ./bin/phpunit --testdox
