@@ -229,6 +229,7 @@
                 <span class="nlm-given-names">
 			<xsl:value-of select="given-names"/>
 		</span>
+        <xsl:text> </xsl:text>
 		<span class="nlm-surname">                
                     <xsl:value-of select="surname"/>
 		</span>
@@ -396,19 +397,15 @@
 
 	<!-- START Table Handling -->
 	<xsl:template match="table-wrap">
-		<!-- line commented and a new line added on 12th August, 2015
-			 For the citation links, take the id from the table-wrap -->
-		<!-- <xsl:variable name="id" select="concat('T', count(preceding::table-wrap)+1)"/>
-		<xsl:variable name="id" select="@id"/> -->
-		<xsl:variable name="id">
-                                <!--<xsl:value-of select="substring-after(@id, 'l')"/>
-                                <xsl:value-of select="@id"/>-->                                
-                                <xsl:value-of select="translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz','')"/>
-                </xsl:variable>
 		<xsl:variable name="data-doi" select="child::object-id[@pub-id-type='doi']/text()"/>
 		
 		<div class="table-wrap"  data-doi="{$data-doi}">
-                    <div class="table-expansion" id="T{$id}">
+                    <div class="table-expansion">
+                        <xsl:if test="@id">
+                            <xsl:attribute name="id">
+                                <xsl:value-of select="@id"/>
+                            </xsl:attribute>
+                        </xsl:if>
                             <xsl:apply-templates />
                     </div>   
                 </div>
@@ -583,9 +580,6 @@
                                             <span class="elife-figure-link elife-figure-link-newtab">
                                                     <a href="[graphic-{$graphics}-large]" target="_new">Open in new tab</a>
                                             </span>
-                                            <!-- <span class="elife-figure-link elife-figure-link-ppt">
-                                                    <a href="">Download powerpoint</a>
-                                            </span> -->
                                     </span>
                                     <span class="fig-label">
                                             <xsl:value-of select="../label/text()"/>
@@ -667,25 +661,10 @@
 	
 	<xsl:template match="ref-list">
 		<div id="references" class="ctools-collapsible-container ctools-collapsible-processed">
-			<span class="ctools-toggle"></span>
-			<h2 class="pane-title ctools-collapsible-handle">References</h2>
-			<div class="ctools-collapsible-content">
-				<div class="elife-reflinks-sortby">
-					<div class="elife-reflinks-sortby-label">Sort by:</div>
-					<div class="item-list">
-						<ul class="tabs inline elife-reflinks-sort-tabs">
-							<li class="first"><span class="elife-reflinks-sort-tab selected"><a href="#elife-reflinks" data-ref="original" data-type="int" data-sort="asc" class="active">original order</a></span></li>
-							<li><span class="elife-reflinks-sort-tab not-selected"><a href="#elife-reflinks" data-ref="author" data-type="string" data-sort="asc">author</a></span></li>
-							<li><span class="elife-reflinks-sort-tab not-selected"><a href="#elife-reflinks" data-ref="title" data-type="string" data-sort="asc">title</a></span></li>
-							<li><span class="elife-reflinks-sort-tab not-selected"><a href="#elife-reflinks" data-ref="date" data-type="date" data-sort="asc">year</a></span></li>
-							<li class="last"><span class="elife-reflinks-sort-tab not-selected"><a href="#elife-reflinks" data-ref="cited" data-type="int" data-sort="asc">cited in paper</a></span></li>
-						</ul>
-					</div>
-				</div>
+			
 				<div class="elife-reflinks-links">
 					<xsl:apply-templates />
 				</div>
-			</div>
 		</div>
 	</xsl:template>
 	
@@ -693,6 +672,9 @@
 	
 	<xsl:template match="ref">
 		<article class="elife-reflinks-reflink" id="{@id}">
+                        <xsl:attribute name="data-original">                                                
+                                <xsl:value-of select="translate(@id,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ','')"/>
+                       </xsl:attribute>
 			<!-- set attribute -->
 			<xsl:variable name="slno" select="translate(@id,'bib','')"/>
 			<div class="elife-reflink-indicators">
@@ -705,17 +687,8 @@
 						</span>
 					</div>
 					
-					
-					
-					<div class="elife-reflink-indicator-cm">
-						<!-- NOTE: Below comment needs to be removed for site -->
-						<!-- <a href="#"></a>-->
-					</div>
 				</div>
-				<div class="elife-reflink-indicators-right">
-					<div class="elife-reflink-indicator-elife"></div>
-					<div class="elife-reflink-indicator-oa"></div>
-				</div>
+				
 			</div>
 			<xsl:apply-templates />
 		</article>
@@ -724,20 +697,24 @@
 	<xsl:template match="ref/element-citation">
 		<xsl:variable name="refid" select="../@id"/>
 		<xsl:variable name="doi" select="pub-id"/>
-		<!-- modifyby arul -->
-		<!-- <xsl:variable name="href" select="concat('/lookup/external-ref/doi?access_num=',$doi,'&amp;link_type=DOI')"/> -->
+		
 		<xsl:variable name="href" select="concat('http://dx.doi.org/',$doi)"/>		
-		<!-- end modify by arul -->
-		<div class="elife-reflink-main">
+		
+                <div class="elife-reflink-main">
 			<cite class="elife-reflink-title">
 				<!-- If publication-type is journal, then <a> tag is needed. Otherwise (book), No need for <a> tag -->
 				<xsl:choose>
-					<xsl:when test="@publication-type = 'journal'">
-						<a href="{$href}">
+					<xsl:when test="@publication-type = 'journal' and pub-id != ''">
+						<a href="{$href}" target="_blank">
 							<span class="nlm-article-title">
 								<xsl:apply-templates select="child::article-title/node()"/>
 							</span>
 						</a>
+					</xsl:when>
+                                        <xsl:when test="@publication-type = 'journal' and string(pub-id) = ''">
+                                                <span class="nlm-article-title">
+                                                        <xsl:apply-templates select="child::article-title/node()"/>
+                                                </span>
 					</xsl:when>
 					<xsl:when test="@publication-type = 'book'">
 						<xsl:choose>
@@ -774,7 +751,17 @@
 						<xsl:for-each select="child::name">
 							<xsl:variable name="givenname" select="child::given-names"/>
 							<xsl:variable name="surname" select="child::surname"/>
-							<xsl:variable name="fullname" select="concat($givenname, ' ', $surname)"/>
+                                                        <xsl:variable name="suffix" select="child::suffix"/>
+                                                        <xsl:variable name="fullname">
+                                                            <xsl:choose>
+                                                                <xsl:when test="string($suffix) != ''">
+                                                                    <xsl:value-of select="concat($givenname, ' ', $surname, ' ', $suffix)"/>
+                                                                </xsl:when>
+                                                                <xsl:otherwise>
+                                                                    <xsl:value-of select="concat($givenname, ' ', $surname)"/>
+                                                                </xsl:otherwise>
+                                                            </xsl:choose>
+							</xsl:variable>
 							<xsl:variable name="hrefvalue" select="concat('http://scholar.google.com/scholar?q=&quot;author:',$fullname,'&quot;')"/>
 							<span class="elife-reflink-author">
 								<a href="{$hrefvalue}">
@@ -788,7 +775,7 @@
 							<!-- for etal exists, then add ( et al.) -->
 							<!-- <xsl:if test="following-sibling::etal"> -->
 							<xsl:if test="position() = last() and following-sibling::etal">
-								<xsl:text> et al.</xsl:text>
+								<xsl:text> et al. </xsl:text>
 							</xsl:if>
 						</xsl:for-each>
 						<!-- Handle collab -->
@@ -835,7 +822,7 @@
 			<div class="elife-reflink-details">
 				<xsl:if test="child::source and (@publication-type='journal')">
 					<span class="elife-reflink-details-journal">
-						<span class="nlm-source" data-hwp-id="source-1">
+						<span class="nlm-source">
 							<xsl:apply-templates select="child::source/node()"/>
 						</span>
 					</span>
@@ -848,7 +835,7 @@
 					 So, source will not be allowed here -->
 				<xsl:if test="child::article-title and child::source and (@publication-type='book')">
 					<span class="elife-reflink-details-journal">
-						<span class="nlm-source" data-hwp-id="source-1">
+						<span class="nlm-source">
 							<xsl:apply-templates select="child::source/node()"/>
 						</span>
 					</span>
@@ -903,45 +890,33 @@
 				</xsl:if>
 				
 				<!-- DOI in references -->
-				<div class="elife-reflink-doi-cited-wrapper">
+				
 					<!-- check whether pib-id or ex-link exist. -->
 					<xsl:if test="child::pub-id">
+                                            <div class="elife-reflink-doi-cited-wrapper">
 						<xsl:variable name="doivalue" select="child::pub-id/node()"></xsl:variable>
 						<span class="elife-reflink-details-doi">
 							<a href="{concat('http://dx.doi.org/', $doivalue)}">
 								<xsl:value-of select="concat('http://dx.doi.org/', $doivalue)"/>
 							</a>
 						</span>
-						<!-- count no.of cited -->
-						<xsl:text> — </xsl:text>
+						<!-- count no.of cited 
+						<xsl:text> — </xsl:text>-->
+                                            </div>
 					</xsl:if>
 					<xsl:if test="child::ext-link">
+                                            <div class="elife-reflink-doi-cited-wrapper">
 						<xsl:variable name="doivalue" select="child::ext-link/node()"></xsl:variable>
 						<span class="elife-reflink-details-doi">
 							<a href="{concat('http://dx.doi.org/', $doivalue)}">
 								<xsl:value-of select="concat('http://dx.doi.org/', $doivalue)"/>
 							</a>
 						</span>
-						<!-- count no.of cited -->
-						<xsl:text> — </xsl:text>
+						
+                                            </div>
 					</xsl:if>
-					<span class="elife-reflink-details-cited">
-						<xsl:value-of select="concat('cited ', count(//xref[@rid=$refid]), ' times in paper')"/>
-					</span>
-					<xsl:if test="child::pub-id">
-						<div class="elife-reflink-links-wrapper">
-							<span class="elife-reflink-link life-reflink-link-ijlink">
-								<a href="" target="_blank" rel="nofollow">HighWire</a>
-							</span>
-							<span class="elife-reflink-link life-reflink-link-doi">
-								<a href="" target="_blank" rel="nofollow">CrossRef</a>
-							</span>
-							<span class="elife-reflink-link life-reflink-link-medline">
-								<a href="" target="_blank" rel="nofollow">PubMed</a>
-							</span>
-						</div>
-					</xsl:if>
-				</div>
+					
+				
 			</div>
 			<xsl:apply-templates />
 		</div>
@@ -1027,13 +1002,7 @@
                                                             <div class="elife-video-links">
                                                                     <span class="elife-video-link elife-video-link-download">
                                                                             <a href="[video-{@id}-download]">Download Video</a>
-                                                                            <!--<a>
-                                                                                <xsl:attribute name="href">
-                                                                                   
-                                                                                    <xsl:value-of select="concat(concat('[video-', @id),'-download]')"/>
-                                                                                </xsl:attribute>
-                                                                                Download Video
-                                                                            </a>-->
+                                                                            
                                                                     </span>
                                                             </div>
                                                     </div>
@@ -1222,12 +1191,7 @@
                         </xsl:otherwise>
                 </xsl:choose>
                 
-		<!-- <div class="boxed-text" data-doi="{$data-doi}">
-			<xsl:attribute name="id">
-				<xsl:value-of select="concat('boxed-text-', count(preceding::boxed-text)+1)" />
-			</xsl:attribute>
-			<xsl:apply-templates/>
-		</div> -->
+		
 		
 	</xsl:template>
         
