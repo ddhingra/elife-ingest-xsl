@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xsl:stylesheet version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xsi xs xlink">
+<xsl:stylesheet version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xsi xs xlink mml">
 
 	<xsl:output method="xml" indent="no" encoding="utf-8"/>
 
@@ -322,6 +324,7 @@
             <xsl:apply-templates />
         </div>
     </div>
+    
   </xsl:template>
   
   <!-- No need to proceed sec-type="additional-information", sec-type="supplementary-material" and sec-type="datasets"-->
@@ -345,15 +348,25 @@
   <!-- END transforming sections to heading levels -->
 
 	<xsl:template match="p">
+            <xsl:if test="not(supplementary-material)">
 		<p>
 			
                         <xsl:if test="ancestor::caption and (count(preceding-sibling::p) = 0) and (ancestor::boxed-text or ancestor::media)">
 				<xsl:attribute name="class">
 					<xsl:value-of select="'first-child'" />
 				</xsl:attribute>
-			</xsl:if>
+			</xsl:if>                        
 			<xsl:apply-templates />
 		</p>
+           </xsl:if>   
+           <xsl:if test="supplementary-material">
+               <xsl:if test="ancestor::caption and (count(preceding-sibling::p) = 0) and (ancestor::boxed-text or ancestor::media)">
+                        <xsl:attribute name="class">
+                                <xsl:value-of select="'first-child'" />
+                        </xsl:attribute>
+                </xsl:if>                        
+                <xsl:apply-templates />
+           </xsl:if>   
 	</xsl:template>
 	<xsl:template match="ext-link">
 		<xsl:if test="@ext-link-type = 'uri'">
@@ -369,29 +382,38 @@
 	</xsl:template>
 	<!-- START handling citation objects -->
 	<xsl:template match="xref">
-		<a>
-			<xsl:attribute name="class">
-				<xsl:value-of select="concat('xref-', ./@ref-type)" />
-			</xsl:attribute>
-			<xsl:attribute name="href">
-				<!-- commented and modified on 13th August, 2015 -->
-				<!-- <xsl:value-of select="concat('#', ./@rid)" />-->
-				<!-- If xref has multiple elements in rid, then the link should points to 1st -->
-				<xsl:choose>
-				    <xsl:when test="contains(@rid, ' ')">
-						<xsl:value-of select="concat('#',substring-before(@rid, ' '))" />
-				    </xsl:when>
-				    <xsl:otherwise>
-				    	<xsl:value-of select="concat('#',@rid)"/>
-				    </xsl:otherwise>
-				</xsl:choose>
-				
-			</xsl:attribute>
-			<!--<xsl:attribute name="rel">
-				<xsl:value-of select="concat('#', ./@rid)" />
-			</xsl:attribute>-->
-			<xsl:apply-templates />
-		</a>
+            <xsl:choose>
+                <xsl:when test="ancestor::fn">
+                    <span class="xref-table">
+                         <xsl:apply-templates />
+                     </span>
+                 </xsl:when>
+                 <xsl:otherwise>
+                     <a>
+                            <xsl:attribute name="class">
+                                    <xsl:value-of select="concat('xref-', ./@ref-type)" />
+                            </xsl:attribute>
+                            <xsl:attribute name="href">
+                                    <!-- commented and modified on 13th August, 2015 -->
+                                    <!-- <xsl:value-of select="concat('#', ./@rid)" />-->
+                                    <!-- If xref has multiple elements in rid, then the link should points to 1st -->
+                                    <xsl:choose>
+                                        <xsl:when test="contains(@rid, ' ')">
+                                                    <xsl:value-of select="concat('#',substring-before(@rid, ' '))" />
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <xsl:value-of select="concat('#',@rid)"/>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+
+                            </xsl:attribute>
+                            <!--<xsl:attribute name="rel">
+                                    <xsl:value-of select="concat('#', ./@rid)" />
+                            </xsl:attribute>-->
+                            <xsl:apply-templates />
+                    </a>
+                 </xsl:otherwise>   
+             </xsl:choose>
 	</xsl:template>
 	<!-- END handling citation objects -->
 
@@ -438,10 +460,7 @@
 		
                     <table>
                             <xsl:apply-templates select="@* | node() " />
-                    </table>
-                    <xsl:if test="not(table-wrap-foot)">
-                        <div class="table-foot"></div>
-                    </xsl:if>		
+                    </table>                    	
 	</xsl:template>
 	<!-- Handle other parts of table -->
 	<xsl:template match="thead|tr">
@@ -455,10 +474,7 @@
 		</xsl:copy>
 	</xsl:template>
         <xsl:template match="tbody">
-            <xsl:copy>
-                <xsl:attribute name="id">
-                    <xsl:value-of select="concat('tbody-', count(preceding::tbody)+1)" />
-                </xsl:attribute>
+            <xsl:copy>                
                 <xsl:apply-templates />
             </xsl:copy>
 	</xsl:template>
@@ -484,10 +500,11 @@
 		</div>
 	</xsl:template>
 	<xsl:template match="table-wrap-foot/fn">
-		<li class="fn" id="{concat('fn-', count(preceding::fn)+1)}">
+		<li class="fn">
 			<xsl:apply-templates />
 		</li>
 	</xsl:template>
+        
 
 	<xsl:template match="named-content[@content-type='author-callout-style1']">
 		<span class="named-content author-callout-style1">
@@ -495,6 +512,83 @@
 		</span>
 	</xsl:template>
 	
+        
+        <xsl:template match="inline-formula">
+            <span class="inline-formula">
+                <xsl:apply-templates />
+            </span>
+        </xsl:template>
+        <xsl:template match="//*[local-name()='math']">
+            <span class="mathjax mml-math">
+                <xsl:text disable-output-escaping="yes">&lt;math xmlns:mml="http://www.w3.org/1998/Math/MathML"&gt;</xsl:text>
+                    <xsl:apply-templates />
+                <xsl:text disable-output-escaping="yes">&lt;/math&gt;</xsl:text>
+            </span>
+        </xsl:template>
+        
+        <xsl:template match="mml:mtext">
+            <xsl:choose>
+                <xsl:when test="string-length(text())=1 and string-length(translate(.,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',''))=0">
+                    <mi>
+                        <xsl:variable name="normaltest" select="translate(.,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ','')"/>
+                        <xsl:attribute name="mathvariant">
+                            <xsl:choose>
+                                <xsl:when test="@mathvariant and string-length($normaltest)!=0">
+                                    <xsl:value-of select="@mathvariant" />
+                                </xsl:when>    
+                                <xsl:when test="string-length($normaltest)=0">
+                                    <xsl:text>normal</xsl:text>
+                                </xsl:when>  
+                                <xsl:otherwise>
+                                    <xsl:text>normals</xsl:text>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:attribute>
+                        <xsl:apply-templates />
+                    </mi>
+                </xsl:when> 
+                <xsl:when test="string-length(text())=1 and string-length(translate(.,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',''))!=0">
+                        <xsl:variable name="AllowedSymbols" select="'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()*%$#@!~&lt;&gt;,.?[]=- +   /\ '"/>
+                       
+                        <xsl:choose>
+                                <xsl:when test="position()=2">
+                                    <mrow><mo><xsl:apply-templates /></mo></mrow>
+                                </xsl:when>
+                                <xsl:when test="position()=(last()-2)">
+                                    <mrow><mo><xsl:apply-templates /></mo></mrow>
+                                </xsl:when>
+                                <xsl:when test="following-sibling::*[1]='='">
+                                    <mrow><mo><xsl:apply-templates /></mo></mrow>
+                                </xsl:when>
+                                <xsl:when test="preceding-sibling::*[1]='='">
+                                    <mrow><mo><xsl:apply-templates /></mo></mrow>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <mi>
+                                        <xsl:if test="@mathvariant">
+                                            <xsl:attribute name="mathvariant">
+                                                <xsl:value-of select="@mathvariant" />
+                                            </xsl:attribute>
+                                        </xsl:if>  
+                                       <xsl:apply-templates />
+                                    </mi>
+                                </xsl:otherwise>
+                        </xsl:choose>
+                </xsl:when> 
+                <xsl:otherwise>
+                    <mtext>   
+                        <xsl:if test="@mathvariant">
+                            <xsl:attribute name="mathvariant">
+                                <xsl:value-of select="@mathvariant" />
+                            </xsl:attribute>
+                        </xsl:if>
+                        <xsl:apply-templates />
+                    </mtext>
+                </xsl:otherwise>
+            </xsl:choose>
+            
+        </xsl:template>
+        
 	<!-- END Table Handling -->
 
 	<!-- Start Figure Handling -->
@@ -508,7 +602,7 @@
 		<div class="fig-group" id="{concat('fig-group-', count(preceding::fig-group)+1)}" data-doi="{$data-doi}">
 			<!-- <div id="{child::fig[not(@specific-use)]/@id}" class="fig-inline-img-set fig-inline-img-set-carousel"> -->
                         <div class="fig-inline-img-set fig-inline-img-set-carousel">
-				<div class="elife-fig-slider-wrapper eLifeArticleFiguresSlider-processed">
+				<div class="elife-fig-slider-wrapper">
 					<div class="elife-fig-slider">
 						<div class="elife-fig-slider-img elife-fig-slider-primary">
 						
@@ -516,16 +610,18 @@
 							
 							<xsl:variable name="primarysrc" select="concat('http://cdn-site.elifesciences.org/content/elife/4/',child::fig[not(@specific-use)]/@id, '.gif')"/>
 							<xsl:variable name="primarycap" select="child::fig[not(@specific-use)]//label/text()"/>
-							<img data-fragment-nid="" class="figure-icon-fragment-nid-" src="{$primarysrc}" alt="{$primarycap}"/>
+                                                        <xsl:variable name="graphichref" select="child::fig[not(@specific-use)]/graphic/@xlink:href"/>
+							<img src="[graphic-{$graphichref}-small]" alt="{$primarycap}"/>
 						</div>
 						<div class="figure-carousel-inner-wrapper">
-							<div class="figure-carousel figure-carousel-">
+							<div class="figure-carousel">
 								<xsl:for-each select="child::fig[@specific-use]">
 									<!-- use variables to set src and alt -->
 									<xsl:variable name="secondarysrc" select="concat('http://cdn-site.elifesciences.org/content/elife/4/',@id, '.gif')"/>
 									<xsl:variable name="secondarycap" select="child::label/text()"/>
+                                                                        <xsl:variable name="secgraphichref" select="child::graphic/@xlink:href"/>
 									<div class="elife-fig-slider-img elife-fig-slider-secondary">
-										<img data-fragment-nid="" class="figure-icon-fragment-nid-" src="{$secondarysrc}" alt="{$secondarycap}"/>
+										<img src="[graphic-{$secgraphichref}-small]" alt="{$secondarycap}"/>
 									</div>
 								</xsl:for-each>
 							</div>
@@ -1098,7 +1194,7 @@
                                         <xsl:text>elife-article-author-response-doi</xsl:text>
                                 </xsl:if>
                         </xsl:attribute>
-                        <strong>DOI: </strong>
+                        <strong>DOI:</strong>
 
                         <xsl:variable name="doino" select="preceding-sibling::*//article-id" />
                         <a href="/lookup/doi/{$doino}">
