@@ -410,6 +410,18 @@ class simpleTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider jatsToHtmlReferenceProvider
+     */
+    public function testJatsToHtmlReference($expected, $actual) {
+        $this->assertEqualHtml($expected, $actual);
+    }
+
+    public function jatsToHtmlReferenceProvider() {
+        $this->setFolders();
+        return $this->compareReferenceHtmlSection();
+    }
+
+    /**
      * @dataProvider xpathMatchProvider
      */
     public function testJatsToHtmlXpathMatch($file, $method, $arguments, $xpath, $expected) {
@@ -469,6 +481,7 @@ class simpleTest extends PHPUnit_Framework_TestCase
             $found = preg_match('/^(?P<filename>[0-9]{5}\-[^\-]+)\-(?P<aff_id>[^\-]+)' . $suffix . '\.html$/', basename($html), $match);
             if ($found) {
                 $sections[] = [
+                    'prefix' => $match['filename'],
                     'suffix' => '-' . $match['aff_id'] . $suffix,
                     'aff_id' => $match['aff_id'],
                 ];
@@ -477,7 +490,34 @@ class simpleTest extends PHPUnit_Framework_TestCase
         $compares = [];
 
         foreach ($sections as $section) {
-            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getAffiliation', $section['aff_id'], ''));
+            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getAffiliation', $section['aff_id'], '', $section['prefix']));
+        }
+
+        return $compares;
+    }
+
+    /**
+     * Prepare array of actual and expected results for reference HTML.
+     */
+    protected function compareReferenceHtmlSection() {
+        $suffix = '-bib';
+        $htmls = glob($this->html_folder . '*' . $suffix . '.html');
+        $sections = [];
+
+        foreach ($htmls as $html) {
+            $found = preg_match('/^(?P<filename>[0-9]{5}\-[^\-]+)\-(?P<bib_id>[^\-]+)' . $suffix . '\.html$/', basename($html), $match);
+            if ($found) {
+                $sections[] = [
+                    'prefix' => $match['filename'],
+                    'suffix' => '-' . $match['bib_id'] . $suffix,
+                    'bib_id' => $match['bib_id'],
+                ];
+            }
+        }
+        $compares = [];
+
+        foreach ($sections as $section) {
+            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getReference', $section['bib_id'], '', $section['prefix']));
         }
 
         return $compares;
@@ -495,6 +535,7 @@ class simpleTest extends PHPUnit_Framework_TestCase
             $found = preg_match('/^(?P<filename>[0-9]{5}\-[^\-]+)\-(?P<id>.+)' . $suffix . '\.html$/', basename($html), $match);
             if ($found) {
                 $sections[] = [
+                    'prefix' => $match['filename'],
                     'suffix' => '-' . $match['id'] . $suffix,
                     'id' => $match['id'],
                 ];
@@ -503,7 +544,7 @@ class simpleTest extends PHPUnit_Framework_TestCase
         $compares = [];
 
         foreach ($sections as $section) {
-            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getId', $section['id'], ''));
+            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getId', $section['id'], '', $section['prefix']));
         }
 
         return $compares;
@@ -521,6 +562,7 @@ class simpleTest extends PHPUnit_Framework_TestCase
             $found = preg_match('/^(?P<filename>[0-9]{5}\-[^\-]+)\-(?P<doi>[^\-]+)' . $suffix . '\.html$/', basename($html), $match);
             if ($found) {
                 $sections[] = [
+                    'prefix' => $match['filename'],
                     'suffix' => '-' . $match['doi'] . $suffix,
                     'doi' => '10.7554/' . $match['doi'],
                 ];
@@ -529,7 +571,7 @@ class simpleTest extends PHPUnit_Framework_TestCase
         $compares = [];
 
         foreach ($sections as $section) {
-            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getDoi', $section['doi'], ''));
+            $compares = array_merge($compares, $this->compareHtmlSection($section['suffix'], 'getDoi', $section['doi'], '', $section['prefix']));
         }
 
         return $compares;
@@ -538,14 +580,14 @@ class simpleTest extends PHPUnit_Framework_TestCase
     /**
      * Prepare array of actual and expected results.
      */
-    protected function compareHtmlSection($type, $method, $params = [], $suffix = '-section-') {
+    protected function compareHtmlSection($type, $method, $params = [], $suffix = '-section-', $prefix = '*') {
         $section_suffix = $suffix . $type;
         if (is_string($params)) {
             $params = [$params];
         }
         $html_prefix = '<meta http-equiv="content-type" content="text/html; charset=utf-8">';
         $expected = 'expected';
-        $htmls = glob($this->html_folder . "*" . $section_suffix . ".html");
+        $htmls = glob($this->html_folder . $prefix . $section_suffix . ".html");
         $compares = [];
 
         libxml_use_internal_errors(TRUE);
